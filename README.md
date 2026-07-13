@@ -55,10 +55,14 @@ like gambling concerns, which are routed to a human via Slack.
   on context (unanswerable questions vs. gambling concerns), so a single 
   filter condition missed some cases. Solved by standardizing the bot's 
   fallback phrase across all escalation scenarios in the system prompt.
-- **Over-reasoning beyond scope**: The model would confidently answer 
-  questions outside its given FAQ scope (e.g. "do you sell scratch cards?") 
-  using general knowledge rather than deferring to a human. Fixed by 
-  explicitly instructing it not to reason beyond the provided business info.
+- **Over-reasoning beyond scope**: The model would confidently answer or 
+  deny questions outside its given FAQ scope (e.g. "do you sell scratch 
+  cards?") using general knowledge rather than deferring to a human. An 
+  initial instruction telling it not to reason beyond the provided business 
+  info wasn't enough on its own — the model kept slipping past it. Adding 
+  an explicit few-shot example of correct vs. incorrect behavior, along 
+  with a lower temperature, fixed it reliably. See 
+  [docs/system-prompt.md](docs/system-prompt.md) for the full before/after.
 
 ## Integration
 
