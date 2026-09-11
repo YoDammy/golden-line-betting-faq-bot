@@ -56,6 +56,67 @@
             }
         },
         {
+            "id": 13,
+            "module": "datastore:GetRecord",
+            "version": 1,
+            "parameters": {
+                "datastore": 185929
+            },
+            "filter": null,
+            "mapper": {
+                "key": "{{2.session_id}}",
+                "returnWrapped": false
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 300,
+                    "name": "Load Chat History"
+                },
+                "restore": {
+                    "parameters": {
+                        "datastore": {
+                            "label": "Chat History"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "datastore",
+                        "type": "datastore",
+                        "label": "Data store",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "key",
+                        "type": "text",
+                        "label": "Key",
+                        "required": true
+                    },
+                    {
+                        "name": "returnWrapped",
+                        "type": "boolean",
+                        "label": "Return Wrapped Output",
+                        "required": true
+                    }
+                ],
+                "interface": [
+                    {
+                        "help": "",
+                        "name": "history",
+                        "type": "text",
+                        "label": null,
+                        "default": null,
+                        "required": false,
+                        "multiline": false
+                    }
+                ],
+                "advanced": true
+            }
+        },
+        {
             "id": 4,
             "module": "openai-gpt-3:CreateCompletion",
             "version": 1,
@@ -63,182 +124,105 @@
                 "__IMTCONN__": 8789639
             },
             "mapper": {
-                "model": "gpt-4o-mini",
-                "top_p": 1,
                 "select": "chat",
+                "temperature": "0.1",
+                "top_p": "1",
+                "n_completions": "1",
+                "model": "gpt-4o-mini",
+                "max_tokens": "300",
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are a friendly, helpful customer support assistant for Golden Line Betting, which serves customers in both New York and the UK.\n\nAnswer customer questions using ONLY the information below. Do not use outside knowledge or reasoning to answer questions not covered by this information. If a question is not directly answered, or if the customer does not make clear which market they mean, say you will connect them with a team member. Do not merge New York and UK details, and never assume that a currency, phone number, payout rule, or support resource applies to both markets.\n\nBUSINESS INFO — NEW YORK:\n- Address: 24 High Street, NYC\n- Services: In-shop betting on football, horse racing, greyhounds; self-service betting terminals; live sports screens\n- Age policy: Must be 18+ with valid ID to enter and place bets\n\nBUSINESS INFO — UK / CURRENT GENERAL DETAILS:\n- Opening hours: Monday to Saturday 9am-9pm, Sunday 10am-6pm\n- Payouts: Winnings under £500 paid in-shop the same day; winnings over £500 may require ID verification and can take up to 24 hours\n- Booking/contact: No booking needed; walk-ins only. For queries call 01582 000000\n- If a customer asks about gambling problems or wants to self-exclude, say you will connect them with a team member and separately mention GamCare at 0808 8020 133 for immediate support.\n\nKeep answers short, warm, and to the point — 1-3 sentences maximum. Always sound human, not robotic. If a product, service, policy, address, opening hour, payout rule, phone number, or support resource is not explicitly listed for the relevant market, treat it as unknown. Do not confirm or deny it and do not suggest alternatives; say you will connect the customer with a team member.\n\nEXAMPLE OF CORRECT BEHAVIOR:\nCustomer: \"Do you sell scratch cards?\"\nCorrect response: \"That is a great question — let me connect you with a team member who can help with that.\"\nIncorrect response: \"We do not sell scratch cards, but we do offer X\" — never confirm or deny anything not explicitly listed.\n\nCRITICAL RULE: Keep New York and UK information separate. When the customer does not specify a market and the answer could differ, ask which market they mean or connect them with a team member."
+                        "content": "You are a friendly, helpful customer support assistant for Golden Line Betting, which serves customers in both New York and the UK.\n\nAnswer customer questions using ONLY the information below. Do not use outside knowledge or reasoning to answer questions not covered by this information.\n\nIf a question is not directly answered by the information below, say you will connect them with a team member. If the customer simply has not made clear which market they mean, ask them which location they are asking about — do NOT mention connecting them with a team member in that case.\n\nDo not merge New York and UK details, and never assume that a currency, phone number, payout rule, or support resource applies to both markets.\n\nBUSINESS INFO — NEW YORK:\n- Address: 24 High Street, NYC\n- Services: In-shop betting on football, horse racing, greyhounds; self-service betting terminals; live sports screens\n- Age policy: Must be 18+ with valid ID to enter and place bets\n\nBUSINESS INFO — UK:\n- Opening hours: Monday to Saturday 9am-9pm, Sunday 10am-6pm\n- Payouts: Winnings under £500 paid in-shop the same day; winnings over £500 may require ID verification and can take up to 24 hours\n- Booking/contact: No booking needed; walk-ins only. For queries call 01582 000000\n- If a customer asks about gambling problems or wants to self-exclude, say you will connect them with a team member and separately mention GamCare at 0808 8020 133 for immediate support.\n\nKeep answers short, warm, and to the point — 1-3 sentences maximum. Always sound human, not robotic. If a product, service, policy, address, opening hour, payout rule, phone number, or support resource is not explicitly listed for the relevant market, treat it as unknown. Do not confirm or deny it and do not suggest alternatives; say you will connect the customer with a team member.\n\nEXAMPLE — OUT OF SCOPE:\nCustomer: \"Do you sell scratch cards?\"\nCorrect response: \"That is a great question — let me connect you with a team member who can help with that.\"\nIncorrect response: \"We do not sell scratch cards, but we do offer X\" — never confirm or deny anything not explicitly listed.\n\nEXAMPLE — CLARIFYING, NOT ESCALATING:\nCustomer: \"How do I get my payout?\"\nCorrect response: \"Happy to help — are you asking about our New York or UK shop?\"\nIncorrect response: \"Could you specify New York or UK? I can then connect you with a team member.\" — this wrongly triggers a staff alert; a clarifying question is not an escalation.\n\nCRITICAL RULE: Keep New York and UK information separate. When the customer does not specify a market and the answer could differ, ask which market they mean. Only offer to connect them with a team member when the information itself is genuinely unavailable for their market — never as part of a clarifying question."
                     },
                     {
                         "role": "user",
-                        "content": "{{2.message}}",
+                        "content": "{{if(length(13.history) > 0; \"Earlier in this conversation: \" + 13.history; emptystring)}}",
+                        "imageDetail": "auto"
+                    },
+                    {
+                        "role": "user",
+                        "content": "Recent conversation history:\n{{ifempty(13.history; \"No previous conversation.\")}}\n\nCurrent customer message:\n{{2.message}}",
                         "imageDetail": "auto"
                     }
                 ],
-                "max_tokens": 300,
-                "temperature": 0.1,
-                "n_completions": 1,
                 "response_format": "text"
             },
             "metadata": {
                 "designer": {
-                    "x": 300,
+                    "x": 600,
                     "y": 300,
                     "name": "FAQ Brain (GPT-4o-mini)"
                 },
                 "restore": {
                     "parameters": {
                         "__IMTCONN__": {
-                            "label": "My OpenAI connection"
+                            "label": "My OpenAI connection",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "openai-gpt-3"
+                            }
                         }
                     },
                     "expect": {
                         "select": {
+                            "label": "Create a Chat Completion (GPT and o1 models)"
+                        },
+                        "logit_bias": {
+                            "mode": "chose"
+                        },
+                        "tool_choice": {
                             "mode": "chose",
-                            "label": "Create a Chat Completion (GPT and o1 models)",
-                            "nested": [
-                                {
-                                    "help": "For a full list of models and their capabilities, see [OpenAI's models page](https://platform.openai.com/docs/models).",
-                                    "name": "model",
-                                    "type": "select",
-                                    "label": "Model",
-                                    "grouped": true,
-                                    "options": {
-                                        "store": "rpc://openai-gpt-3@1/getModels?type=chat",
-                                        "nested": [
-                                            "rpc://openai-gpt-3@1/getModelSettings?reasoning=true"
-                                        ]
-                                    },
-                                    "mappable": {
-                                        "help": "ID of the model to use. For a full list of models and their capabilities, see the [OpenAI Models page](https://platform.openai.com/docs/models)."
-                                    },
-                                    "required": true
-                                },
-                                {
-                                    "help": "Maximum number of tokens to use in the completion (output). If `empty`, the limit of the model will be used.\nNote that:\n- Low values may cause the output to be truncated.\n- High values may use a lot of OpenAI credit.\nWhen using reasoning models such as the o1 models, this value is the sum of reasoning + output tokens.\nFor details, check [OpenAI Pricing](https://openai.com/pricing) page and the [Reasoning Models Guide](https://platform.openai.com/docs/guides/reasoning) if relevant.",
-                                    "name": "max_tokens",
-                                    "type": "uinteger",
-                                    "label": "Max Output Tokens",
-                                    "default": 2048
-                                }
-                            ]
+                            "label": "Empty"
+                        },
+                        "stop": {
+                            "mode": "chose"
+                        },
+                        "additionalParameters": {
+                            "mode": "chose"
                         },
                         "model": {
                             "mode": "chose",
                             "label": "gpt-4o-mini (system)"
                         },
                         "messages": {
+                            "mode": "chose",
                             "items": [
                                 {
                                     "role": {
                                         "mode": "chose",
-                                        "label": "Developer / System",
-                                        "nested": [
-                                            {
-                                                "help": "Text content of the message on behalf of the selected __Role__.",
-                                                "name": "content",
-                                                "type": "text",
-                                                "label": "Text Content"
-                                            }
-                                        ]
+                                        "label": "Developer / System"
                                     }
                                 },
                                 {
                                     "role": {
                                         "mode": "chose",
-                                        "label": "User",
-                                        "nested": [
-                                            {
-                                                "help": "Text content of the message on behalf of the selected __Role__.",
-                                                "name": "content",
-                                                "type": "text",
-                                                "label": "Text Content"
-                                            },
-                                            {
-                                                "name": "imageInputType",
-                                                "type": "select",
-                                                "label": "Image Input Type",
-                                                "mappable": false,
-                                                "options": [
-                                                    {
-                                                        "value": "url",
-                                                        "label": "URL",
-                                                        "nested": [
-                                                            {
-                                                                "name": "imageUrl",
-                                                                "label": "Image URL",
-                                                                "type": "url",
-                                                                "help": "Make sure to use a publicly accessible URL.\nYou can test if your image is publicly accessible by opening the link in an incognito tab."
-                                                            }
-                                                        ]
-                                                    },
-                                                    {
-                                                        "value": "file",
-                                                        "label": "Image File",
-                                                        "nested": [
-                                                            {
-                                                                "name": "imageFile",
-                                                                "label": "Image",
-                                                                "type": "collection",
-                                                                "spec": [
-                                                                    {
-                                                                        "name": "imageFilename",
-                                                                        "type": "filename",
-                                                                        "label": "Image Filename",
-                                                                        "semantic": "file:name",
-                                                                        "extension": [
-                                                                            "jpg",
-                                                                            "jpeg",
-                                                                            "png",
-                                                                            "webp",
-                                                                            "gif"
-                                                                        ],
-                                                                        "help": "Accepted extensions: `.jpg`, `.jpeg`, `.png`, `.webp` and `.gif`."
-                                                                    },
-                                                                    {
-                                                                        "name": "imageData",
-                                                                        "type": "buffer",
-                                                                        "label": "Image Data",
-                                                                        "semantic": "file:data"
-                                                                    }
-                                                                ]
-                                                            }
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "name": "imageDetail",
-                                                "type": "select",
-                                                "label": "Image Detail",
-                                                "help": "Recommended value: `Auto`",
-                                                "options": [
-                                                    {
-                                                        "value": "auto",
-                                                        "default": true,
-                                                        "label": "Auto"
-                                                    },
-                                                    {
-                                                        "value": "high",
-                                                        "label": "High"
-                                                    },
-                                                    {
-                                                        "value": "low",
-                                                        "label": "Low"
-                                                    }
-                                                ]
-                                            }
-                                        ]
+                                        "label": "User"
+                                    },
+                                    "imageInputType": {
+                                        "mode": "chose",
+                                        "label": "Empty"
+                                    },
+                                    "imageDetail": {
+                                        "mode": "chose",
+                                        "label": "Auto"
+                                    }
+                                },
+                                {
+                                    "role": {
+                                        "mode": "chose",
+                                        "label": "User"
+                                    },
+                                    "imageInputType": {
+                                        "mode": "chose",
+                                        "label": "Empty"
                                     },
                                     "imageDetail": {
                                         "mode": "chose",
                                         "label": "Auto"
                                     }
                                 }
-                            ],
-                            "mode": "chose"
+                            ]
                         },
                         "response_format": {
                             "mode": "chose",
@@ -259,7 +243,6 @@
                         "name": "select",
                         "type": "select",
                         "label": "Select Method",
-                        "mappable": false,
                         "required": true,
                         "validate": {
                             "enum": [
@@ -269,77 +252,9 @@
                         }
                     },
                     {
-                        "name": "model",
-                        "type": "select",
-                        "label": "Model",
-                        "grouped": true,
-                        "mappable": {
-                            "help": "ID of the model to use. For a full list of models and their capabilities, see the [OpenAI Models page](https://platform.openai.com/docs/models)."
-                        },
-                        "required": true
-                    },
-                    {
-                        "name": "messages",
-                        "spec": {
-                            "label": "Message",
-                            "type": "collection",
-                            "spec": [
-                                {
-                                    "name": "role",
-                                    "type": "select",
-                                    "label": "Role",
-                                    "required": true,
-                                    "validate": {
-                                        "enum": [
-                                            "user",
-                                            "assistant",
-                                            "system",
-                                            "tool"
-                                        ]
-                                    }
-                                }
-                            ]
-                        },
-                        "labels": {
-                            "add": "Add message"
-                        },
-                        "type": "array",
-                        "label": "Messages",
-                        "required": true,
-                        "mappable": {
-                            "help": "Array of messages to generate completions for. For more information, see the [OpenAI Chat Completions API documentation](https://platform.openai.com/docs/guides/text-generation/chat-completions-api)."
-                        }
-                    },
-                    {
-                        "name": "response_format",
-                        "type": "select",
-                        "label": "Response Format",
-                        "advanced": true,
-                        "validate": {
-                            "enum": [
-                                "text",
-                                "json_object"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "prediction",
-                        "type": "text",
-                        "label": "Predicted Outputs",
-                        "advanced": true
-                    },
-                    {
-                        "name": "max_tokens",
-                        "type": "uinteger",
-                        "label": "Max Output Tokens",
-                        "default": 2048
-                    },
-                    {
                         "name": "temperature",
                         "type": "number",
                         "label": "Temperature",
-                        "default": 1,
-                        "advanced": true,
                         "validate": {
                             "max": 2,
                             "min": 0
@@ -349,8 +264,6 @@
                         "name": "top_p",
                         "type": "number",
                         "label": "Top P",
-                        "default": 1,
-                        "advanced": true,
                         "validate": {
                             "max": 1,
                             "min": 0
@@ -359,16 +272,12 @@
                     {
                         "name": "n_completions",
                         "type": "number",
-                        "label": "Number",
-                        "default": 1,
-                        "advanced": true
+                        "label": "Number"
                     },
                     {
                         "name": "frequency_penalty",
                         "type": "number",
                         "label": "Frequency Penalty",
-                        "default": 0,
-                        "advanced": true,
                         "validate": {
                             "max": 2,
                             "min": -2
@@ -378,8 +287,6 @@
                         "name": "presence_penalty",
                         "type": "number",
                         "label": "Presence Penalty",
-                        "default": 0,
-                        "advanced": true,
                         "validate": {
                             "max": 2,
                             "min": -2
@@ -387,6 +294,8 @@
                     },
                     {
                         "name": "logit_bias",
+                        "type": "array",
+                        "label": "Token Probability",
                         "spec": {
                             "spec": [
                                 {
@@ -407,26 +316,19 @@
                                 }
                             ],
                             "type": "collection",
-                            "label": "Token Probability"
-                        },
-                        "type": "array",
-                        "label": "Token Probability",
-                        "labels": {
-                            "add": "Add token probability"
-                        },
-                        "advanced": true
+                            "label": "Token Probability",
+                            "name": "value"
+                        }
                     },
                     {
                         "name": "seed",
                         "type": "integer",
-                        "label": "Seed",
-                        "advanced": true
+                        "label": "Seed"
                     },
                     {
                         "name": "tool_choice",
                         "type": "select",
                         "label": "Tool Choice",
-                        "advanced": true,
                         "validate": {
                             "enum": [
                                 "none",
@@ -437,22 +339,21 @@
                     },
                     {
                         "name": "stop",
-                        "spec": {
-                            "type": "text",
-                            "label": "Stop Sequence"
-                        },
                         "type": "array",
                         "label": "Stop Sequences",
-                        "labels": {
-                            "add": "Add stop sequence"
-                        },
-                        "advanced": true,
                         "validate": {
                             "maxItems": 4
+                        },
+                        "spec": {
+                            "type": "text",
+                            "label": "Stop Sequence",
+                            "name": "value"
                         }
                     },
                     {
                         "name": "additionalParameters",
+                        "type": "array",
+                        "label": "Other Input Parameters",
                         "spec": {
                             "spec": [
                                 {
@@ -465,26 +366,301 @@
                                     "name": "type",
                                     "type": "select",
                                     "label": "Input Type",
-                                    "validate": {
-                                        "enum": [
-                                            "text",
-                                            "number",
-                                            "boolean",
-                                            "date",
-                                            "any"
+                                    "options": [
+                                        {
+                                            "label": "Text",
+                                            "value": "text",
+                                            "nested": [
+                                                {
+                                                    "name": "value",
+                                                    "type": "text",
+                                                    "label": "Parameter Value"
+                                                }
+                                            ],
+                                            "default": true
+                                        },
+                                        {
+                                            "label": "Number",
+                                            "value": "number",
+                                            "nested": [
+                                                {
+                                                    "name": "value",
+                                                    "type": "number",
+                                                    "label": "Parameter Value"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "label": "Boolean",
+                                            "value": "boolean",
+                                            "nested": [
+                                                {
+                                                    "name": "value",
+                                                    "type": "boolean",
+                                                    "label": "Parameter Value"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "label": "Date",
+                                            "value": "date",
+                                            "nested": [
+                                                {
+                                                    "name": "value",
+                                                    "type": "date",
+                                                    "label": "Parameter Value"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "label": "Any",
+                                            "value": "any",
+                                            "nested": [
+                                                {
+                                                    "name": "value",
+                                                    "type": "any",
+                                                    "label": "Parameter Value"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ],
+                            "type": "collection",
+                            "label": "Input Parameter",
+                            "name": "value"
+                        }
+                    },
+                    {
+                        "name": "model",
+                        "type": "select",
+                        "label": "Model",
+                        "required": true
+                    },
+                    {
+                        "name": "max_tokens",
+                        "type": "uinteger",
+                        "label": "Max Output Tokens"
+                    },
+                    {
+                        "name": "messages",
+                        "type": "array",
+                        "label": "Messages",
+                        "required": true,
+                        "spec": {
+                            "label": "Message",
+                            "type": "collection",
+                            "spec": [
+                                {
+                                    "name": "role",
+                                    "type": "select",
+                                    "label": "Role",
+                                    "required": true,
+                                    "options": {
+                                        "store": [
+                                            {
+                                                "label": "User",
+                                                "value": "user",
+                                                "default": true,
+                                                "nested": [
+                                                    {
+                                                        "help": "Text content of the message on behalf of the selected __Role__.",
+                                                        "name": "content",
+                                                        "type": "text",
+                                                        "label": "Text Content"
+                                                    },
+                                                    {
+                                                        "name": "imageInputType",
+                                                        "type": "select",
+                                                        "label": "Image Input Type",
+                                                        "mappable": false,
+                                                        "options": [
+                                                            {
+                                                                "value": "url",
+                                                                "label": "URL",
+                                                                "nested": [
+                                                                    {
+                                                                        "name": "imageUrl",
+                                                                        "label": "Image URL",
+                                                                        "type": "url",
+                                                                        "help": "Make sure to use a publicly accessible URL.\nYou can test if your image is publicly accessible by opening the link in an incognito tab."
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "value": "file",
+                                                                "label": "Image File",
+                                                                "nested": [
+                                                                    {
+                                                                        "name": "imageFile",
+                                                                        "label": "Image",
+                                                                        "type": "collection",
+                                                                        "spec": [
+                                                                            {
+                                                                                "name": "imageFilename",
+                                                                                "type": "filename",
+                                                                                "label": "Image Filename",
+                                                                                "semantic": "file:name",
+                                                                                "extension": [
+                                                                                    "jpg",
+                                                                                    "jpeg",
+                                                                                    "png",
+                                                                                    "webp",
+                                                                                    "gif"
+                                                                                ],
+                                                                                "help": "Accepted extensions: `.jpg`, `.jpeg`, `.png`, `.webp` and `.gif`."
+                                                                            },
+                                                                            {
+                                                                                "name": "imageData",
+                                                                                "type": "buffer",
+                                                                                "label": "Image Data",
+                                                                                "semantic": "file:data"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "name": "imageDetail",
+                                                        "type": "select",
+                                                        "label": "Image Detail",
+                                                        "help": "Recommended value: `Auto`",
+                                                        "options": [
+                                                            {
+                                                                "value": "auto",
+                                                                "default": true,
+                                                                "label": "Auto"
+                                                            },
+                                                            {
+                                                                "value": "high",
+                                                                "label": "High"
+                                                            },
+                                                            {
+                                                                "value": "low",
+                                                                "label": "Low"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "label": "Assistant",
+                                                "value": "assistant",
+                                                "nested": [
+                                                    {
+                                                        "help": "Text content of the message on behalf of the selected __Role__.",
+                                                        "name": "content",
+                                                        "type": "text",
+                                                        "label": "Text Content"
+                                                    },
+                                                    {
+                                                        "name": "tool_calls",
+                                                        "label": "Tool Calls",
+                                                        "type": "array",
+                                                        "labels": {
+                                                            "add": "Add tool call"
+                                                        },
+                                                        "mode": "edit",
+                                                        "mappable": {
+                                                            "help": "You can map the entire `Choices[]: Message.Tool Calls` array from a previous Create a Completion module here."
+                                                        },
+                                                        "spec": {
+                                                            "label": "Tool Call",
+                                                            "type": "collection",
+                                                            "spec": [
+                                                                {
+                                                                    "name": "type",
+                                                                    "type": "hidden",
+                                                                    "default": "function"
+                                                                },
+                                                                {
+                                                                    "name": "id",
+                                                                    "type": "text",
+                                                                    "label": "Tool call ID",
+                                                                    "help": "Map this directly from the output of a previous **Create a Completion** module. Look for `Choices[]: Message.Tool Calls[]: ID`."
+                                                                },
+                                                                {
+                                                                    "name": "function",
+                                                                    "type": "collection",
+                                                                    "label": "Function",
+                                                                    "spec": [
+                                                                        {
+                                                                            "name": "name",
+                                                                            "label": "Name",
+                                                                            "type": "text",
+                                                                            "required": true,
+                                                                            "help": "The name of the function previously called."
+                                                                        },
+                                                                        {
+                                                                            "name": "arguments",
+                                                                            "label": "Arguments",
+                                                                            "type": "text",
+                                                                            "required": true,
+                                                                            "help": "The arguments previously output by the AI."
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "label": "Developer / System",
+                                                "nested": [
+                                                    {
+                                                        "help": "Text content of the message on behalf of the selected __Role__.",
+                                                        "name": "content",
+                                                        "type": "text",
+                                                        "label": "Text Content"
+                                                    }
+                                                ],
+                                                "value": "system"
+                                            },
+                                            {
+                                                "label": "Tool",
+                                                "value": "tool",
+                                                "nested": [
+                                                    {
+                                                        "help": "The return of the function. This role should only be used when you have processed a previous function call and want to send the output of the function execution back to the AI.",
+                                                        "name": "content",
+                                                        "type": "text",
+                                                        "label": "Text Content",
+                                                        "required": true
+                                                    },
+                                                    {
+                                                        "label": "Tool Call ID.",
+                                                        "name": "tool_call_id",
+                                                        "type": "text",
+                                                        "required": true,
+                                                        "help": "Map this directly from the output of a previous **Create a Completion** module. Look for `Choices[]: Message.Tool Calls[]: ID`."
+                                                    }
+                                                ]
+                                            }
                                         ]
                                     }
                                 }
                             ],
-                            "type": "collection",
-                            "label": "Input Parameter"
-                        },
-                        "type": "array",
-                        "label": "Other Input Parameters",
-                        "labels": {
-                            "add": "Add input parameter"
-                        },
-                        "advanced": true
+                            "name": "value"
+                        }
+                    },
+                    {
+                        "name": "response_format",
+                        "type": "select",
+                        "label": "Response Format",
+                        "validate": {
+                            "enum": [
+                                "text",
+                                "json_object"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "prediction",
+                        "type": "text",
+                        "label": "Predicted Outputs"
                     }
                 ],
                 "interface": [
@@ -750,7 +926,7 @@
                     },
                     "metadata": {
                         "designer": {
-                            "x": 600,
+                            "x": 900,
                             "y": 600,
                             "name": "Alert - Bot Failure"
                         },
@@ -890,7 +1066,7 @@
                     },
                     "metadata": {
                         "designer": {
-                            "x": 900,
+                            "x": 1200,
                             "y": 600,
                             "name": "Fallback Reply"
                         },
@@ -951,13 +1127,81 @@
             ]
         },
         {
+            "id": 14,
+            "module": "datastore:AddRecord",
+            "version": 1,
+            "parameters": {
+                "datastore": 185929
+            },
+            "filter": null,
+            "mapper": {
+                "key": "{{2.session_id}}",
+                "data": {
+                    "history": "{{join(slice(split(if(length(13.history) > 0; 13.history + \" || \"; ) + \"User: \" + 2.message + \" | Assistant: \" + 4.choices[].message.content; \" || \"); -6); \" || \")}}"
+                },
+                "overwrite": true
+            },
+            "metadata": {
+                "designer": {
+                    "x": 900,
+                    "y": 150,
+                    "name": "Save Chat History"
+                },
+                "restore": {
+                    "expect": {
+                        "overwrite": {
+                            "mode": "chose"
+                        }
+                    },
+                    "parameters": {
+                        "datastore": {
+                            "label": "Chat History"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "datastore",
+                        "type": "datastore",
+                        "label": "Data store",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "key",
+                        "type": "text",
+                        "label": "Key"
+                    },
+                    {
+                        "name": "overwrite",
+                        "type": "boolean",
+                        "label": "Overwrite an existing record",
+                        "required": true
+                    },
+                    {
+                        "name": "data",
+                        "spec": [
+                            {
+                                "name": "history",
+                                "type": "text",
+                                "label": null
+                            }
+                        ],
+                        "type": "collection",
+                        "label": "Record"
+                    }
+                ]
+            }
+        },
+        {
             "id": 5,
             "module": "builtin:BasicRouter",
             "version": 1,
             "mapper": null,
             "metadata": {
                 "designer": {
-                    "x": 600,
+                    "x": 1200,
                     "y": 150,
                     "name": "Standard vs Escalation"
                 }
@@ -978,8 +1222,8 @@
                                     [
                                         {
                                             "a": "{{4.choices[].message.content}}",
-                                            "o": "text:notcontain:ci",
-                                            "b": "connect you with a team member"
+                                            "b": "connect you with a team member",
+                                            "o": "text:notcontain:ci"
                                         }
                                     ]
                                 ]
@@ -1003,7 +1247,7 @@
                             },
                             "metadata": {
                                 "designer": {
-                                    "x": 900,
+                                    "x": 1500,
                                     "y": 0,
                                     "name": "Log Conversation"
                                 },
@@ -1203,7 +1447,7 @@
                             },
                             "metadata": {
                                 "designer": {
-                                    "x": 1200,
+                                    "x": 1800,
                                     "y": 0,
                                     "name": "Reply to Widget"
                                 },
@@ -1278,8 +1522,8 @@
                                     [
                                         {
                                             "a": "{{4.choices[].message.content}}",
-                                            "o": "text:contain:ci",
-                                            "b": "connect you with a team member"
+                                            "b": "connect you with a team member",
+                                            "o": "text:contain:ci"
                                         }
                                     ]
                                 ]
@@ -1293,7 +1537,7 @@
                             },
                             "metadata": {
                                 "designer": {
-                                    "x": 900,
+                                    "x": 1500,
                                     "y": 300,
                                     "name": "Alert Staff"
                                 },
@@ -1433,7 +1677,7 @@
                             },
                             "metadata": {
                                 "designer": {
-                                    "x": 1200,
+                                    "x": 1800,
                                     "y": 300,
                                     "name": "Reply + Notify"
                                 },
