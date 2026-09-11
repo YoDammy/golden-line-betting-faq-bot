@@ -1,8 +1,9 @@
 # FAQ Chatbot for Betting Shop — Built in Make.com
 
 An AI-powered FAQ assistant for a website chat widget, built for a fictional 
-betting shop (Golden Line Betting) as a Venly Labs demo project.
-
+betting shop (Golden Line Betting) as a Venly Labs project. Supports 
+both New York and UK markets, keeping business details fully separate 
+between the two.
 ## Stack
 - Make.com (orchestration)
 - OpenAI GPT-4o-mini (response generation)
@@ -24,10 +25,14 @@ conversation never hangs.
 
 ## Key Features
 - Strict FAQ-only responses (no hallucinated answers)
+- Multi-market support — New York and UK business details are kept fully 
+  separate, with no cross-market assumptions
 - Automatic escalation detection for sensitive queries 
-  (e.g. responsible gambling, unanswerable questions)
-- Real-time staff Slack alerts for escalated conversations
-- Full conversation logging to Google Sheets
+  (e.g. responsible gambling, unanswerable questions, ambiguous market questions)
+- Real-time staff Slack alerts for escalated conversations only
+- Standard conversations logged to Google Sheets; escalations are excluded 
+  from the standard log to avoid double-handling
+- Case-insensitive escalation matching for reliable routing
 - Graceful error handling with fallback replies
 
 ## Module Configuration
@@ -39,11 +44,20 @@ and the reasoning behind key design decisions.
 
 ## Routing Logic
 
+## Routing Logic
+
 ![Router filters](screenshots/router-filters.png)
 
 Responses are routed based on whether the bot's reply indicates it couldn't 
-answer directly — catching both "I don't know" cases and sensitive topics 
-like gambling concerns, which are routed to a human via Slack.
+answer directly or needed to defer to a human — catching unanswerable 
+questions, sensitive topics like gambling concerns, and ambiguous 
+cross-market questions. Matching is case-insensitive to avoid missed 
+escalations due to phrasing differences.
+
+Standard replies are logged to Google Sheets only when they do not require 
+human escalation. Escalated conversations are routed to Slack instead, 
+and are explicitly excluded from the standard log to prevent the same 
+conversation being recorded twice under two different outcomes.
 
 ## Challenges & Fixes
 
@@ -63,6 +77,12 @@ like gambling concerns, which are routed to a human via Slack.
   an explicit few-shot example of correct vs. incorrect behavior, along 
   with a lower temperature, fixed it reliably. See 
   [docs/system-prompt.md](docs/system-prompt.md) for the full before/after.
+  - **Routing double-counting**: Early versions of the router occasionally 
+  logged escalated conversations to Google Sheets as if they were standard 
+  replies, in addition to alerting Slack — creating duplicate/misleading 
+  records. Fixed by making the standard-reply route explicitly conditional 
+  on the conversation NOT matching the escalation filter, so each 
+  conversation is logged in exactly one place.
 
 ## Integration
 
