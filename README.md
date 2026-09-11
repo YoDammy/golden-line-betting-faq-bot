@@ -1,9 +1,11 @@
 # FAQ Chatbot for Betting Shop — Built in Make.com
 
 An AI-powered FAQ assistant for a website chat widget, built for a fictional 
-betting shop (Golden Line Betting) as a Venly Labs project. Supports 
+betting shop (Golden Line Betting) as a Venly Labs demo project. Supports 
 both New York and UK markets, keeping business details fully separate 
-between the two.
+between the two, and holds context across a conversation rather than 
+treating each message as standalone.
+
 ## Stack
 - Make.com (orchestration)
 - OpenAI GPT-4o-mini (response generation)
@@ -15,7 +17,8 @@ between the two.
 
 ![Full scenario flow](screenshots/full-scenario-flow.png)
 
-Website Widget → Webhook → OpenAI (FAQ Brain) → Router
+Website Widget → Webhook → Load Chat History → OpenAI (FAQ Brain) → 
+Save Chat History → Router
     ├─ Standard Reply → Log to Sheets → Reply to Widget
     └─ Escalation → Alert Staff (Slack) → Reply to Widget
 
@@ -23,13 +26,34 @@ An error handler on the OpenAI module catches API failures, alerts staff via
 Slack, and still returns a graceful fallback reply to the widget so the 
 conversation never hangs.
 
+### Conversation memory
+
+The bot holds context across a session rather than treating every message 
+as standalone — so a sequence like "how do I get my payout?" followed by 
+"ny" resolves correctly instead of the second message being meaningless 
+on its own.
+
+1. `Load Chat History` (Data Store: `Chat History`, keyed by `session_id`) 
+   runs right after the webhook trigger, before OpenAI. On a session's 
+   first message, no record exists yet — the scenario is configured to 
+   continue rather than error in that case.
+2. The prior history is injected into the OpenAI call as a message between 
+   the System and User messages, giving the model prior turns as context.
+3. `Save Chat History` runs after OpenAI, before the router. It appends the 
+   latest exchange and writes it back under the same session key, trimmed 
+   to the last 6 turns to keep token usage and cost bounded as a 
+   conversation grows.
+   
 ## Key Features
 - Strict FAQ-only responses (no hallucinated answers)
 - Multi-market support — New York and UK business details are kept fully 
   separate, with no cross-market assumptions
+- Holds conversation context across a session, trimmed to a bounded window
 - Automatic escalation detection for sensitive queries 
-  (e.g. responsible gambling, unanswerable questions, ambiguous market questions)
-- Real-time staff Slack alerts for escalated conversations only
+  (e.g. responsible gambling, unanswerable questions)
+- Ambiguous-market questions trigger a clarifying question, not a false 
+  escalation
+- Real-time staff Slack alerts for genuine escalations only
 - Standard conversations logged to Google Sheets; escalations are excluded 
   from the standard log to avoid double-handling
 - Case-insensitive escalation matching for reliable routing
@@ -41,8 +65,6 @@ conversation never hangs.
 
 See [docs/system-prompt.md](docs/system-prompt.md) for the full system prompt 
 and the reasoning behind key design decisions.
-
-## Routing Logic
 
 ## Routing Logic
 
@@ -83,6 +105,18 @@ conversation being recorded twice under two different outcomes.
   records. Fixed by making the standard-reply route explicitly conditional 
   on the conversation NOT matching the escalation filter, so each 
   conversation is logged in exactly one place.
+- **False escalation on clarifying questions**: Asking "which market do you 
+  mean?" was originally phrased in a way that included "connect you with a 
+  team member," which the router filter caught as an escalation — triggering 
+  an unnecessary Slack alert on every ambiguous question. Fixed by giving 
+  the prompt an explicit example distinguishing a clarifying question from 
+  a genuine escalation, and instructing it never to mention staff handoff 
+  when simply asking which market a customer means.
+- **Lost context between turns**: Once clarifying questions were introduced, 
+  a customer's one-word follow-up (e.g. "ny") had no meaning on its own, 
+  since each message was sent to OpenAI in isolation. Fixed by adding a 
+  Data Store-backed conversation history, read before and written after 
+  each OpenAI call, keyed by session ID and trimmed to the last 6 turns.
 
 ## Integration
 
@@ -91,7 +125,19 @@ chat widget sends a POST request with the visitor's message, and displays
 whatever comes back in the JSON response. No API keys or backend logic live 
 on their end; all automation logic is owned and maintained in this Make 
 scenario.
+## Production considerations (not yet implemented)
 
+This build is demo-ready, not production-hardened. Before deploying for a 
+real client, it would need:
+
+- **Rate limiting**: the webhook is a public URL with no shared secret — 
+  anyone who finds it could hammer it and run up OpenAI/Make costs
+- **History expiry**: Data Store records for chat history have no cleanup 
+  job, so storage grows indefinitely
+- **Session authentication**: session IDs are generated client-side and 
+  unauthenticated — fine for anonymous FAQ chat, not sufficient if a 
+  conversation might ever contain anything personal to a specific visitor
+  
 ## Files
 - `blueprint.json` — exported Make scenario (importable into any Make account)
 - `docs/system-prompt.md` — full prompt + design rationale
